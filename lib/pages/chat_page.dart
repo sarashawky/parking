@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parking/components/chat_bubble.dart';
 import 'package:parking/components/input_text_field.dart';
@@ -23,10 +24,10 @@ class _ChatPageState extends State<ChatPage> {
   final AuthService _authService = AuthService();
 
   FocusNode myFocusNode = FocusNode();
-
+  User? user;
 void sendMessage() async {
     if (_messsageController.text.isNotEmpty) {
-      await _chatService.sendMessage(widget.receiverID, _messsageController.text);
+      await _chatService.sendMessage(widget.receiverID, _messsageController.text,user);
       _messsageController.clear();
     }
     scrollDown();
@@ -34,6 +35,11 @@ void sendMessage() async {
 
   @override
   void initState() {
+    _authService.signInAnonymously().then((value) {
+      setState(() {
+        user=value;
+      });
+    },);
     myFocusNode.addListener(() {
       if(myFocusNode.hasFocus){
         Future.delayed(Duration(microseconds: 500),
@@ -52,12 +58,12 @@ void sendMessage() async {
     super.dispose();
   }
 
-  final ScrollController _scrollController =ScrollController();
+  // final ScrollController _scrollController =ScrollController();
   scrollDown() {
-    _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(seconds: 1),
-        curve: Curves.fastOutSlowIn);
+    // _scrollController.animateTo(
+    //     _scrollController.position.maxScrollExtent,
+    //     duration: const Duration(seconds: 1),
+    //     curve: Curves.fastOutSlowIn);
   }
 
 
@@ -85,7 +91,7 @@ void sendMessage() async {
   }
 
   Widget _buildMessageList() {
-    String senderId = _authService.getCurrentUser()!.uid;
+    String senderId = user!=null?user!.uid:"";
     return StreamBuilder(
         stream: _chatService.getMessages(widget.receiverID, senderId),
         builder: (context, snapshot) {
@@ -96,7 +102,7 @@ void sendMessage() async {
             return const Text("Loading ....");
           }
           return ListView(
-            controller: _scrollController,
+            // controller: _scrollController,
             children: snapshot.data!.docs
                 .map((doc) => _buildMessageItem(doc))
                 .toList(),
@@ -106,7 +112,7 @@ void sendMessage() async {
 
   Widget _buildMessageItem(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    bool isCurrentUser = data['senderID'] == _authService.getCurrentUser()!.uid;
+    bool isCurrentUser = data['senderID'] == user!.uid;
 
     var alignment =
         isCurrentUser ? Alignment.centerRight : Alignment.centerLeft;

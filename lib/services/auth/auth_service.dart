@@ -12,6 +12,7 @@ class AuthService{
   Future<UserCredential> signInWithEmailPassword(String email,String password) async {
     try{
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+
       _firebaseFirestore.collection("Users").doc(userCredential.user!.uid).set(
         {
           'uid':userCredential.user!.uid,
@@ -22,6 +23,19 @@ class AuthService{
     } on FirebaseAuthException catch(e){
       throw Exception(e.code);
     }
+  }
+
+  // Function to sign in the user anonymously
+  Future<User?> signInAnonymously() async {
+    User? user;
+    try {
+      UserCredential userCredential = await _auth.signInAnonymously();
+      user= userCredential.user;
+      print("Anonymous UID: $userCredential.user?.uid");// This is the temporary UID
+    } catch (e) {
+      print("Error signing in anonymously: $e");
+    }
+    return user;
   }
 
   Future<void> signout() async {
